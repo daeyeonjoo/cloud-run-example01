@@ -22,14 +22,6 @@ feature_branch_only2: &feature_branch_only2
       only: /^feature\/.*/
 
 jobs:
-  code-quality:
-    machine:
-      image: 'ubuntu-2004:current'
-      resource_class: medium
-    steps:
-      - checkout
-
-jobs:
   build:
     docker:
       - image: cimg/openjdk:21.0
