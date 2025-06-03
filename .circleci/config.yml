@@ -1,0 +1,37 @@
+# This config was automatically generated from your source code
+# Stacks detected: deps:java:.,tool:gradle:
+version: 2.1
+
+orbs:
+  gradle: circleci/gradle@3.0.0
+
+executors:
+  default-executor:
+    docker:
+      - image: cimg/openjdk:21.0
+    resource_class: small
+
+feature_branch_only: &feature_branch_only
+  filters:
+    branches:
+      only: /^feature\/.*/
+
+feature_branch_only2: &feature_branch_only2
+  filters:
+    branches:
+      only: /^feature\/.*/
+
+jobs:
+  code-quality:
+    machine:
+      image: 'ubuntu-2004:current'
+      resource_class: medium
+    steps:
+      - checkout
+
+workflows:
+  validate-and-build:
+    jobs:
+      - gradle/test:
+          name: build
+          executor: default-executor

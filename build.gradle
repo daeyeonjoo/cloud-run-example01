@@ -20,6 +20,22 @@ configurations {
     }
 }
 
+bootBuildImage {
+    imageName = dockerId + "/cloud-run-example01"
+    publish = true
+    environment = [
+        'BP_NATIVE_IMAGE': 'true',
+        'BP_JVM_VERSION': '21',
+    ]
+
+    docker {
+        publishRegistry {
+            username = dockerId
+            password = dockerPassword
+        }
+    }
+}
+
 repositories {
     mavenCentral()
 }
