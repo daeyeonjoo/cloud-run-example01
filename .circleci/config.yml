@@ -24,9 +24,19 @@ feature_branch_only2: &feature_branch_only2
 jobs:
   build-and-deploy:
     docker:
-      - image: cimg/google-cloud:latest
+      - image: cimg/openjdk:21.0
     steps:
       - checkout
+      
+      # Install Google Cloud SDK
+      - run:
+          name: Install Google Cloud SDK
+          command: |
+            echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+            sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg
+            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+            sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+            gcloud --version
       
       # Setup Docker
       - setup_remote_docker:
