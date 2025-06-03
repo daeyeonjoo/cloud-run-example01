@@ -29,19 +29,22 @@ jobs:
     steps:
       - checkout
 
+jobs:
+  build:
+    docker:
+      - image: cimg/openjdk:21.0
+    steps:
+      - checkout
+      - run:
+          name: Run Gradle build
+          command: |
+            ./gradlew bootBuildImage \
+              -PdockerId=$DOCKERHUB_USER_ID \
+              -PdockerPassword=$DOCKERHUB_USER_PASSWORD \
+              -Porg.gradle.native=true \
+              --info
+
 workflows:
   validate-and-build:
     jobs:
-      - gradle/build:
-          name: build
-          executor: default-executor
-          arguments:
-            app_src_include: src/**/*
-            app_build_file: build.gradle
-            app_build_cmd: bootBuildImage
-            # Pass custom parameters to Gradle
-            app_build_args: >
-              -PdockerId=DOCKERHUB_USER_ID
-              -PdockerPassword=DOCKERHUB_USER_PASSWORD
-              -Porg.gradle.native=true
-              --info
+      - build
