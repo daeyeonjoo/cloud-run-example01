@@ -22,9 +22,9 @@ feature_branch_only2: &feature_branch_only2
       only: /^feature\/.*/
 
 jobs:
-  build:
+  build-and-deploy:
     docker:
-      - image: cimg/openjdk:21.0
+      - image: cimg/google-cloud:latest
     steps:
       - checkout
       
@@ -55,8 +55,37 @@ jobs:
             # Push the image to Docker Hub
             docker push "${DOCKERHUB_USERNAME}/cloud-run-example01:latest"
             docker push "${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1}"
+      
+      # Configure gcloud and deploy to Cloud Run
+      - run:
+          name: Authenticate with Google Cloud
+          command: |
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project $GCLOUD_PROJECT_ID
+            gcloud --quiet config set compute/region $GCLOUD_REGION
+            gcloud --quiet auth configure-docker
+      
+      - run:
+          name: Deploy to Cloud Run
+          command: |
+            # Deploy the service to Cloud Run
+            gcloud run deploy $CLOUD_RUN_SERVICE_NAME \
+              --image=docker.io/${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1} \
+              --platform=managed \
+              --region=$GCLOUD_REGION \
+              --allow-unauthenticated \
+              --set-env-vars=SPRING_PROFILES_ACTIVE=prod \
+              --port=8080
+              
+            # Get the service URL
+            SERVICE_URL=$(gcloud run services describe $CLOUD_RUN_SERVICE_NAME \
+              --platform=managed \
+              --region=$GCLOUD_REGION \
+              --format='value(status.url)')
+            
+            echo "Deployed to: $SERVICE_URL"
 
 workflows:
-  validate-and-build:
+  validate-and-deploy:
     jobs:
-      - build
+      - build-and-deploy
