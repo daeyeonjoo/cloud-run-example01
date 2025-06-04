@@ -100,11 +100,11 @@ jobs:
           name: Deploy to Cloud Run
           command: |
             # Pull the image first to ensure we have access
-            docker pull << pipeline.parameters.docker_image >>
+            docker pull ${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1}
             
             # Deploy the service to Cloud Run
             gcloud run deploy $CLOUD_RUN_SERVICE_NAME \
-              --image=<< pipeline.parameters.docker_image >> \
+              --image=${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1} \
               --platform=managed \
               --region=$GCLOUD_REGION \
               --allow-unauthenticated \
@@ -119,11 +119,6 @@ jobs:
             
             echo "Deployed to: $SERVICE_URL"
 
-# Define pipeline parameters
-parameters:
-  docker_image:
-    type: string
-    default: ""
 
 workflows:
   version: 2.1
