@@ -128,4 +128,4 @@ workflows:
             - deploy-context
           filters:
             branches:
-              only: main
+              only: master
