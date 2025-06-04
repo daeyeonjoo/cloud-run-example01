@@ -66,6 +66,12 @@ jobs:
     steps:
       - checkout
       
+      # Login to Docker Hub
+      - run:
+          name: Login to Docker Hub
+          command: |
+            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      
       # Configure gcloud and deploy to Cloud Run
       - run:
           name: Authenticate with Google Cloud
@@ -93,9 +99,12 @@ jobs:
       - run:
           name: Deploy to Cloud Run
           command: |
+            # Pull the image first to ensure we have access
+            docker pull << pipeline.parameters.docker_image >>
+            
             # Deploy the service to Cloud Run
             gcloud run deploy $CLOUD_RUN_SERVICE_NAME \
-              --image=docker.io/<< pipeline.parameters.docker_image >> \
+              --image=<< pipeline.parameters.docker_image >> \
               --platform=managed \
               --region=$GCLOUD_REGION \
               --allow-unauthenticated \
