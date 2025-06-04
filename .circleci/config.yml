@@ -22,21 +22,11 @@ feature_branch_only2: &feature_branch_only2
       only: /^feature\/.*/
 
 jobs:
-  build-and-deploy:
+  build:
     docker:
       - image: cimg/openjdk:21.0
     steps:
       - checkout
-      
-      # Install Google Cloud SDK
-      - run:
-          name: Install Google Cloud SDK
-          command: |
-            echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-            sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates gnupg
-            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-            sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-            gcloud --version
       
       # Setup Docker
       - setup_remote_docker:
@@ -65,11 +55,24 @@ jobs:
             # Push the image to Docker Hub
             docker push "${DOCKERHUB_USERNAME}/cloud-run-example01:latest"
             docker push "${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1}"
+    
+    # Save the image name and tag for the deploy job
+    environment:
+      DOCKER_IMAGE: ${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1}
+
+  deploy:
+    docker:
+      - image: cimg/google-cli:latest
+    steps:
+      - checkout
       
       # Configure gcloud and deploy to Cloud Run
       - run:
           name: Authenticate with Google Cloud
           command: |
+            # Install jq for JSON parsing
+            sudo apt-get update && sudo apt-get install -y jq
+            
             # Save the service account key to a file
             echo "$GCLOUD_SERVICE_KEY" > /tmp/service-account.json
             
@@ -92,7 +95,7 @@ jobs:
           command: |
             # Deploy the service to Cloud Run
             gcloud run deploy $CLOUD_RUN_SERVICE_NAME \
-              --image=docker.io/${DOCKERHUB_USERNAME}/cloud-run-example01:${CIRCLE_SHA1} \
+              --image=docker.io/<< pipeline.parameters.docker_image >> \
               --platform=managed \
               --region=$GCLOUD_REGION \
               --allow-unauthenticated \
@@ -107,7 +110,22 @@ jobs:
             
             echo "Deployed to: $SERVICE_URL"
 
+# Define pipeline parameters
+parameters:
+  docker_image:
+    type: string
+    default: ""
+
 workflows:
-  validate-and-deploy:
+  version: 2.1
+  build-and-deploy:
     jobs:
-      - build-and-deploy
+      - build
+      - deploy:
+          requires:
+            - build
+          context: 
+            - deploy-context
+          filters:
+            branches:
+              only: main
