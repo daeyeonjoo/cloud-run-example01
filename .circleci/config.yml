@@ -70,10 +70,22 @@ jobs:
       - run:
           name: Authenticate with Google Cloud
           command: |
-            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            # Save the service account key to a file
+            echo "$GCLOUD_SERVICE_KEY" > /tmp/service-account.json
+            
+            # Get the client email from the JSON key
+            CLIENT_EMAIL=$(jq -r '.client_email' /tmp/service-account.json)
+            
+            # Authenticate using the service account
+            gcloud auth activate-service-account $CLIENT_EMAIL --key-file=/tmp/service-account.json
+            
+            # Configure gcloud
             gcloud --quiet config set project $GCLOUD_PROJECT_ID
             gcloud --quiet config set compute/region $GCLOUD_REGION
             gcloud --quiet auth configure-docker
+            
+            # Verify authentication
+            gcloud auth list
       
       - run:
           name: Deploy to Cloud Run
